@@ -25,7 +25,7 @@
 
     <div class="container is-fluid">
       <div class="columns is-left-and-right">
-        <div class="column is-3">
+        <div class="column is-2">
           <section class="navigator">
             <div class="hero is-info is-bold">
               <div class="hero-body">
@@ -36,7 +36,7 @@
               </div>
             </div>
 
-            <aside class="menu">
+            <aside class="menu" v-if="categories.length > 0">
               <p class="menu-label">Programs</p>
 
               <ul class="menu-list">
@@ -48,13 +48,17 @@
           </section>
         </div>
 
-        <div class="column is-9" :class="{ 'is-white': active_category }">
+        <div class="column is-10" :class="{ 'is-white': active_category }">
           <section v-if="active_category">
             
             <section class="hero is-primary is-bold is-header">
               <div class="hero-body" :class="{ 'has-tabs': active_category.stages.length > 1 }">
                 <div class="container">
-                  <h1 class="title">{{ active_category.name }}</h1>
+                  <h1 class="title">
+                    {{ active_category.name }}
+
+                    <i v-show="is_emitting" class="fa fa-circle-o-notch fa-spin"></i>
+                  </h1>
 
                   <div class="tabs is-boxed" v-if="active_category.stages.length > 1">
                     <ul>
@@ -69,7 +73,7 @@
               </div>
             </section>
 
-            <div class="container is-fluid">
+            <div class="container is-fluid table-container">
               <table class="table is-bordered is-striped is-fullwidth">
                 <thead>
                   <tr>
@@ -87,6 +91,35 @@
                     </th>
                   </tr>
                 </thead>
+
+                <tbody>
+                  <tr v-for="candidate in candidates" v-if="candidate.categories.indexOf(active_category.id) > -1">
+                    <td>
+                      <div class="media">
+                        <div class="media-left">
+                          <figure class="image is-48x48">
+                            <img :src="candidate.thumb" alt="Candidate Photo" />
+                          </figure>
+                        </div>
+
+                        <div class="media-content">
+                          <h1 class="title is-5">{{ candidate.name }}</h1>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td class="is-fit" v-for="criteria in active_category.criterias">
+                      <input class="input is-short" type="number"
+                        v-model.number="scores[candidate.id + ':' + active_category.id + ':' + criteria.id]"
+                        @change="sendScore(candidate.id + ':' + active_category.id + ':' + criteria.id)"
+                        :disabled="status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'disabled'"
+                        :class="{
+                          'is-success': status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'success',
+                          'is-danger': status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'error'
+                        }" />
+                    </td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </section>
@@ -97,7 +130,11 @@
                 <div class="container">
                   <div class="columns">
                     <div class="column is-4 is-offset-4">
-                      <div class="box">No program selected</div>
+                      <div class="box">
+                        <i class="fa fa-download fa-3x"></i>
+
+                        <p>Waiting for data&hellip;</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -128,19 +165,52 @@
       this.client.on('categories', data => {
         this.categories = data
       })
+
+      this.client.on('candidates', data => {
+        this.candidates = data.map(candidate => {
+          if (candidate.picture) {
+            candidate.picture = URL.createObjectURL(new Blob([candidate.picture]))
+          }
+
+          if (candidate.thumb) {
+            candidate.thumb = URL.createObjectURL(new Blob([candidate.thumb]))
+          }
+
+          return candidate
+        })
+
+        this.client.emit('request', 'categories')
+      })
     },
 
     mounted () {
-      this.$http.post('request/categories')
+      this.client.emit('request', 'candidates')
+
+      this.$http.get('score')
+        .then(response => {
+          for (let id in response.data.scores) {
+            this.scores[id] = response.data.scores[id]
+            this.status[id] = 'success'
+          }
+        })
+        .catch(error => {})
     },
 
     destroyed () {
       this.client.off('categories')
+      this.client.off('candidates')
     },
 
     data () {
       return {
-        categories: []
+        is_emitting: false,
+
+        categories: [],
+        candidates: [],
+
+        scores: {},
+
+        status: {}
       }
     },
 
@@ -163,6 +233,32 @@
             </div>
           `
         })
+      },
+
+      sendScore (id) {
+        const value = this.scores[id]
+
+        this.status[id] = 'disabled'
+
+        this.$http.post('score', { id, value })
+          .then(response => {
+            this.status[id] = 'success'
+
+            this.$forceUpdate()
+          })
+          .catch(error => {
+            const message = error.response.data.error.message || error.message
+
+            this.$dialog.alert({ message,
+              title: 'Login Error',
+              type: 'is-danger'
+            })
+
+            this.scores[id] = null
+            this.status[id] = 'error'
+
+            this.$forceUpdate()
+          })
       },
 
       logout () {
@@ -321,5 +417,27 @@
     .column:last-child {
       padding-left: 0;
     }
+  }
+
+  .table-container {
+    overflow-y: scroll;
+    height: calc(100vh - 84px);
+  }
+
+  table, .table {
+    tbody {
+      td {
+        vertical-align: middle;
+        text-align: center;
+      }
+    }
+  }
+
+  .input.is-short {
+    width: 100px;
+  }
+
+  .media {
+    align-items: center;
   }
 </style>

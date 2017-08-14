@@ -91,6 +91,8 @@
             loader.close()
 
             this.$store.dispatch('login', response.data.user)
+
+            this.$http.defaults.headers.common['Authorization'] = `Bearer ${response.data.user.token}`
           })
           .catch(error => {
             const message = error.response.data.error.message || error.message
