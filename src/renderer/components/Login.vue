@@ -86,7 +86,7 @@
       login () {
         const loader = this.$loading.open()
   
-        this.$http.post('/login', this.credentials)
+        this.$http.post('auth/login', this.credentials)
           .then(response => {
             loader.close()
 

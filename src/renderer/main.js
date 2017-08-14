@@ -34,7 +34,10 @@ Vue.http = Vue.prototype.$http = axios.create({
   baseURL: `${window.config.server}/api`
 })
 
-Vue.io = Vue.prototype.$io = ws(window.config.server)
+Vue.io = Vue.prototype.$io = ws(window.config.server, {
+  transports: ['websocket'],
+  upgrade: false
+})
 
 /* eslint-disable no-new */
 new Vue({

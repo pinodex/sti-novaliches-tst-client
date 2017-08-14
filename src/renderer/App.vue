@@ -19,10 +19,17 @@
                   <p>Connecting</p>
                 </div>
 
+                <div v-if="ws_state == 'reconnecting'">
+                  <i class="fa fa-refresh fa-spin fa-3x"></i>
+                  
+                  <p>Reconnecting</p>
+                </div>
+
                 <div v-if="ws_state == 'disconnected'">
                   <i class="fa fa-exclamation-triangle fa-3x"></i>
                   
-                  <p>Disconnected</p>
+                  <p v-if="ws_message">{{ ws_message }}</p>
+                  <p v-else>Disconnected</p>
                 </div>
 
                 <div v-if="ws_state == 'locked'">
@@ -30,7 +37,6 @@
                   
                   <p>Locked</p>
                 </div>
-
               </div>
             </div>
           </div>
@@ -42,7 +48,9 @@
 
 <script>
   export default {
-    created () {
+    client: null,
+
+    beforeCreate () {
       this.$store.subscribe((mutation, state) => {
         if (mutation.type == 'LOGIN') {
           this.$router.push('home')
@@ -53,24 +61,48 @@
         }
       })
 
+      this.client = this.$io.channel('root')
+    },
+
+    created () {
       this.ws_state = 'connecting'
 
-      const client = this.$io.channel('root')
+      this.client.connect()
 
-      client.connect((error, connected) => {
-        if (connected) {
-          this.ws_state = 'connected'
+      this.client.on('connect', () => this.ws_state = 'connected')
+      this.client.on('disconnect', () => this.ws_state = 'disconnected')
+      this.client.on('reconnecting', () => this.ws_state = 'reconnecting')
 
-          return
-        }
+      this.client.on('connect_error', this.showConnectionError)
+      this.client.on('connect_timeout', this.showConnectionError)
+      this.client.on('reconnect_error', this.showConnectionError)
+      this.client.on('reconnect_failed', this.showConnectionError)
+    },
 
+    destroyed () {
+      this.client.off('connect')
+      this.client.off('disconnect')
+      this.client.off('reconnecting')
+      this.client.off('connect_error')
+      this.client.off('connect_timeout')
+      this.client.off('reconnect_error')
+      this.client.off('reconnect_failed')
+    },
+
+    methods: {
+      showConnectionError (error) {
         this.ws_state = 'disconnected'
-      })
+
+        if (error) {
+          this.ws_message = error.toString()
+        }
+      }
     },
 
     data () {
       return {
-        ws_state: 'locked'
+        ws_state: 'locked',
+        ws_message: null
       }
     }
   }

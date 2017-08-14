@@ -24,10 +24,10 @@
     </article>
 
     <div class="container is-fluid">
-      <div class="columns">
+      <div class="columns is-left-and-right">
         <div class="column is-3">
           <section class="navigator">
-            <div class="hero is-light is-bold">
+            <div class="hero is-info is-bold">
               <div class="hero-body">
                 <div class="has-text-centered">
                   <img src="/static/img/logo-100.png" />
@@ -40,15 +40,70 @@
               <p class="menu-label">Programs</p>
 
               <ul class="menu-list">
-                <li><a class="is-active">Dashboard</a></li>
-                <li><a>Customers</a></li>
+                <li v-for="category in categories">
+                  <a :class="{ 'is-active': category.is_active }">{{ category.name }}</a>
+                </li>
               </ul>
             </aside>
           </section>
         </div>
 
-        <div class="column">
+        <div class="column is-9" :class="{ 'is-white': active_category }">
+          <section v-if="active_category">
+            
+            <section class="hero is-primary is-bold is-header">
+              <div class="hero-body" :class="{ 'has-tabs': active_category.stages.length > 1 }">
+                <div class="container">
+                  <h1 class="title">{{ active_category.name }}</h1>
 
+                  <div class="tabs is-boxed" v-if="active_category.stages.length > 1">
+                    <ul>
+                      <li v-for="stage in active_category.stages"
+                        :class="{ 'is-active': stage.is_active }">
+                        
+                        <a>{{ stage.name }}</a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="container is-fluid">
+              <table class="table is-bordered is-striped is-fullwidth">
+                <thead>
+                  <tr>
+                    <th>Contestant</th>
+                    <th v-for="criteria in active_category.criterias">
+                      {{ criteria.name }} ({{ criteria.percentage }}%)
+
+                      <button class="button is-small is-light is-pulled-right" title="More information"
+                        @click="showCriteriaDescription(criteria)">
+
+                        <span class="icon is-small">
+                          <i class="fa fa-question-circle"></i>
+                        </span>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+          </section>
+
+          <section v-else>
+            <section class="hero is-fullheight">
+              <div class="hero-body has-text-centered">
+                <div class="container">
+                  <div class="columns">
+                    <div class="column is-4 is-offset-4">
+                      <div class="box">No program selected</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </section>
         </div>
       </div>
     </div>
@@ -57,17 +112,86 @@
 
 <script>
   export default {
-    created () {
+    client: null,
+
+    beforeCreate () {
       if (!this.$store.getters.user) {
         this.$router.push('login')
+      }
+
+      this.client = this.$io.channel('data')
+    },
+
+    created () {
+      this.client.connect()
+
+      this.client.on('categories', data => {
+        this.categories = data
+      })
+    },
+
+    mounted () {
+      this.$http.post('request/categories')
+    },
+
+    destroyed () {
+      this.client.off('categories')
+    },
+
+    data () {
+      return {
+        categories: []
+      }
+    },
+
+    computed: {
+      active_category: function () {
+        return this.categories.find(category => category.is_active)
       }
     },
 
     methods: {
+      showCriteriaDescription (criteria) {
+        this.$modal.open({
+          content: `
+            <div class="box">
+              <div class="content">
+                <h1 class="title is-4">${criteria.name} (${criteria.percentage}%)</h1>
+
+                <p>${criteria.description}</p>
+              </div>
+            </div>
+          `
+        })
+      },
+
       logout () {
         this.$dialog.confirm({
           message: 'Are you sure you want to logout?',
-          onConfirm: () => this.$store.dispatch('logout')
+          onConfirm: () => {
+            const loader = this.$loading.open()
+
+            this.$http
+              .post('auth/logout', {
+                username: this.$store.getters.user.username,
+                token: this.$store.getters.user.token
+              })
+              .then(response => {
+                this.$store.dispatch('logout')
+
+                loader.close()
+              })
+              .catch(error => {
+                loader.close()
+
+                const message = error.response.data.error.message || error.message
+
+                this.$dialog.alert({ message,
+                  title: 'Login Error',
+                  type: 'is-danger'
+                })
+              })
+          }
         })
       }
     }
@@ -76,7 +200,11 @@
 
 <style lang="scss">
   .container.is-fluid {
-    margin-left: 0;
+    margin: 0;
+  }
+
+  .column.is-white {
+    background: #fff;
   }
 
   .sidebar {
@@ -144,6 +272,54 @@
           }
         }
       }
+    }
+  }
+
+  .hero {
+    &.is-header {
+      .hero-body {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+        
+        &.has-tabs {
+          padding-bottom: 0;
+        }
+
+        .title {
+          margin-left: 1rem;
+        }
+      }
+    }
+  }
+
+  .tabs {
+    li {
+      a {
+        cursor: default;
+      }
+
+      &:not(.is-active):hover {
+        a {
+          background: transparent !important;
+          opacity: 0.9 !important;
+        }
+      }
+
+      &.is-active:hover {
+        a {
+          opacity: 1 !important;
+        }
+      }
+    }
+  }
+
+  .is-left-and-right {
+    .column:first-child {
+      padding-right: 0;
+    }
+
+    .column:last-child {
+      padding-left: 0;
     }
   }
 </style>
