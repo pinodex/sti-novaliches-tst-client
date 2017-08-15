@@ -24,7 +24,7 @@
     </article>
 
     <div class="container is-fluid">
-      <div class="columns is-left-and-right">
+      <div class="columns is-gapless">
         <div class="column is-2">
           <section class="navigator">
             <div class="hero is-info is-bold">
@@ -79,7 +79,9 @@
                   <tr>
                     <th>Contestant</th>
                     <th v-for="criteria in active_category.criterias">
-                      {{ criteria.name }} ({{ criteria.percentage }}%)
+                      {{ criteria.name }}
+
+                      <span v-if="active_category.is_weighted">({{ criteria.percentage }}%)</span>
 
                       <button class="button is-small is-light is-pulled-right" title="More information"
                         @click="showCriteriaDescription(criteria)">
@@ -414,16 +416,6 @@
           opacity: 1 !important;
         }
       }
-    }
-  }
-
-  .is-left-and-right {
-    .column:first-child {
-      padding-right: 0;
-    }
-
-    .column:last-child {
-      padding-left: 0;
     }
   }
 
