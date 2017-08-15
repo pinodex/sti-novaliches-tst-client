@@ -162,8 +162,16 @@
     created () {
       this.client.connect()
 
+      let userId = null
+
+      if (this.$store.getters.user) {
+        userId = this.$store.getters.user.id
+      }
+
       this.client.on('categories', data => {
-        this.categories = data
+        this.categories = data.filter(category => {
+          return category.judges.findIndex(id => id == userId) > -1
+        })
       })
 
       this.client.on('candidates', data => {
@@ -250,7 +258,7 @@
             const message = error.response.data.error.message || error.message
 
             this.$dialog.alert({ message,
-              title: 'Login Error',
+              title: 'Scoring Error',
               type: 'is-danger'
             })
 
