@@ -110,12 +110,38 @@
 
 <style>
   html, body {
-    overflow-y: hidden;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+
+    width: 100%;
+  }
+
+  #app {
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+    -webkit-user-drag: none;
+
+    position: absolute;
+    width: 100%;
+
+    cursor: default;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  .modal {
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+    -webkit-user-drag: none;
+
+    cursor: default;
   }
 
   .backdrop-overlay {
     background-image: linear-gradient(to bottom, rgba(0, 109, 183, 0.75), #006db7),
-                      url('/static/img/sti-novaliches-building.png');
+                      url('../../static/img/sti-novaliches-building.png');
     
     background-repeat: repeat-x, no-repeat;
     background-size: cover, cover;

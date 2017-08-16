@@ -26,15 +26,13 @@ if (!process.env.IS_WEB) {
 
 Vue.use(Buefy)
 
-window.config = require('../../config.json')
-
 Vue.config.productionTip = false
 
 Vue.http = Vue.prototype.$http = axios.create({
-  baseURL: `${window.config.server}/api`
+  baseURL: `${process.env.server}/api`
 })
 
-Vue.io = Vue.prototype.$io = ws(window.config.server, {
+Vue.io = Vue.prototype.$io = ws(process.env.server, {
   transports: ['websocket'],
   upgrade: false
 })

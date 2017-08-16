@@ -161,14 +161,8 @@
   .logo {
     background: #fff300;
 
-    &.logo-50 {
-      background: url('/static/img/logo-50.png') no-repeat center;
-      height: 50px;
-      width: 65px;
-    }
-
     &.logo-100 {
-      background: url('/static/img/logo-100.png') no-repeat center;
+      background: url('../../../static/img/logo-100.png') no-repeat center;
       height: 100px;
       width: 129px;
     }

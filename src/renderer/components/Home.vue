@@ -3,7 +3,7 @@
     <article class="media current-user">
       <figure class="media-left">
         <p class="image is-48x48">
-          <img src="/static/img/default-image.jpg" />
+          <img :src="avatar" />
         </p>
       </figure>
 
@@ -30,7 +30,7 @@
             <div class="hero is-info is-bold">
               <div class="hero-body">
                 <div class="has-text-centered">
-                  <img src="/static/img/logo-100.png" />
+                  <img src="../../../static/img/logo-100.png" />
                   <h2 class="subtitle">Talent Search Tabulation</h2>
                 </div>
               </div>
@@ -52,23 +52,13 @@
           <section v-if="active_category">
             
             <section class="hero is-primary is-bold is-header">
-              <div class="hero-body" :class="{ 'has-tabs': active_category.stages.length > 1 }">
+              <div class="hero-body">
                 <div class="container">
                   <h1 class="title">
                     {{ active_category.name }}
 
                     <i v-show="is_emitting" class="fa fa-circle-o-notch fa-spin"></i>
                   </h1>
-
-                  <div class="tabs is-boxed" v-if="active_category.stages.length > 1">
-                    <ul>
-                      <li v-for="stage in active_category.stages"
-                        :class="{ 'is-active': stage.is_active }">
-                        
-                        <a>{{ stage.name }}</a>
-                      </li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </section>
@@ -133,9 +123,9 @@
                   <div class="columns">
                     <div class="column is-4 is-offset-4">
                       <div class="box">
-                        <i class="fa fa-download fa-3x"></i>
+                        <i class="fa fa-ban fa-3x"></i>
 
-                        <p>Waiting for data&hellip;</p>
+                        <p>No active program</p>
                       </div>
                     </div>
                   </div>
@@ -150,6 +140,8 @@
 </template>
 
 <script>
+  import avatar from '../../../static/img/default-image.jpg'
+
   export default {
     client: null,
 
@@ -220,7 +212,9 @@
 
         scores: {},
 
-        status: {}
+        status: {},
+
+        avatar
       }
     },
 
