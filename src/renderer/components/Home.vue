@@ -67,6 +67,7 @@
               <table class="table is-bordered is-striped is-fullwidth">
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Contestant</th>
                     <th v-for="criteria in active_category.criterias">
                       {{ criteria.name }}
@@ -87,6 +88,9 @@
                 <tbody>
                   <tr v-for="candidate in candidates" v-if="candidate.categories.indexOf(active_category.id) > -1">
                     <td>
+                      <h2 class="subtitle">{{ candidate.number }}</h2>
+                    </td>
+                    <td>
                       <div class="media">
                         <div class="media-left">
                           <figure class="image is-48x48">
@@ -104,10 +108,10 @@
                       <input class="input is-short" type="number"
                         v-model.number="scores[candidate.id + ':' + active_category.id + ':' + criteria.id]"
                         @change="sendScore(candidate.id + ':' + active_category.id + ':' + criteria.id)"
-                        :disabled="status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'disabled'"
+                        :disabled="!criteria.is_enabled || status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'disabled'"
                         :class="{
-                          'is-success': status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'success',
-                          'is-danger': status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'error'
+                          'is-success': criteria.is_enabled && status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'success',
+                          'is-danger': criteria.is_enabled && status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'error'
                         }" />
                     </td>
                   </tr>
