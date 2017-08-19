@@ -91,7 +91,7 @@
                       <h2 class="subtitle">{{ candidate.number }}</h2>
                     </td>
                     <td>
-                      <div class="media">
+                      <div class="media candidate" @click="showCandidatePicture(candidate)" title="View Picture">
                         <div class="media-left">
                           <figure class="image is-48x48">
                             <img :src="candidate.thumb" alt="Candidate Photo" />
@@ -105,9 +105,10 @@
                     </td>
 
                     <td class="is-fit" v-for="criteria in active_category.criterias">
-                      <input class="input is-short" type="number"
+                      <input class="input is-short" type="number" max="100"
                         v-model.number="scores[candidate.id + ':' + active_category.id + ':' + criteria.id]"
                         @change="sendScore(candidate.id + ':' + active_category.id + ':' + criteria.id)"
+                        :min="criteria.minimum_value"
                         :disabled="!criteria.is_enabled || status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'disabled'"
                         :class="{
                           'is-success': criteria.is_enabled && status[candidate.id + ':' + active_category.id + ':' + criteria.id] == 'success',
@@ -241,6 +242,14 @@
             </div>
           `
         })
+      },
+
+      showCandidatePicture (candidate) {
+        this.$modal.open(
+          `<p class="image is-square">
+            <img src="${candidate.picture}" />
+          </p>`
+        )
       },
 
       sendScore (id) {
@@ -437,5 +446,9 @@
 
   .media {
     align-items: center;
+
+    &.candidate {
+      cursor: pointer;
+    }
   }
 </style>
