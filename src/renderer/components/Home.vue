@@ -193,7 +193,7 @@
     mounted () {
       this.client.emit('request', 'candidates')
 
-      this.$http.get('score')
+      this.$http.get('data/score')
         .then(response => {
           for (let id in response.data.scores) {
             this.scores[id] = response.data.scores[id]
@@ -257,7 +257,7 @@
 
         this.status[id] = 'disabled'
 
-        this.$http.post('score', { id, value })
+        this.$http.post('data/score', { id, value })
           .then(response => {
             this.status[id] = 'success'
 
@@ -290,9 +290,13 @@
                 token: this.$store.getters.user.token
               })
               .then(response => {
-                this.$store.dispatch('logout')
-
                 loader.close()
+                
+                if (this.$store.getters.interceptorId) {
+                  this.$http.interceptors.request.eject(this.$store.getters.interceptorId)
+                }
+                
+                this.$store.dispatch('logout')
               })
               .catch(error => {
                 loader.close()

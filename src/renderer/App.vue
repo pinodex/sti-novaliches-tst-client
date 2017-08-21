@@ -3,40 +3,19 @@
     <div class="backdrop-overlay"></div>
 
     <transition name="fade">
-      <router-view v-if="ws_state == 'connected'"></router-view>
+      <router-view v-if="state.open"></router-view>
     </transition>
 
-    <section class="hero is-fullheight" v-if="ws_state != 'connected'">
+    <section class="hero is-fullheight" v-if="!state.open">
       <div class="hero-body has-text-centered">
         <div class="container">
           <div class="columns">
             <div class="column is-4 is-offset-4">
-              <div class="box">
+              <div class="box">                
+                <i class="fa fa-3x" :class="state.icon"></i>
+                <p>{{ state.text }}</p>
 
-                <div v-if="ws_state == 'connecting'">
-                  <i class="fa fa-circle-o-notch fa-spin fa-3x"></i>
-                  
-                  <p>Connecting</p>
-                </div>
-
-                <div v-if="ws_state == 'reconnecting'">
-                  <i class="fa fa-refresh fa-spin fa-3x"></i>
-                  
-                  <p>Reconnecting</p>
-                </div>
-
-                <div v-if="ws_state == 'disconnected'">
-                  <i class="fa fa-exclamation-triangle fa-3x"></i>
-                  
-                  <p v-if="ws_message">{{ ws_message }}</p>
-                  <p v-else>Disconnected</p>
-                </div>
-
-                <div v-if="ws_state == 'locked'">
-                  <i class="fa fa-lock fa-3x"></i>
-                  
-                  <p>Locked</p>
-                </div>
+                <p v-if="message">{{ message }}</p>
               </div>
             </div>
           </div>
@@ -47,6 +26,52 @@
 </template>
 
 <script>
+  const states = {
+    HANDSHAKING: {
+      icon: 'fa-circle-o-notch fa-spin',
+      text: 'Initializing connection',
+      open: false
+    },
+
+    HANDSHAKE_FAILED: {
+      icon: 'fa-exclamation-triangle',
+      text: 'Handshake failed',
+      open: false
+    },
+
+    WS_CONNECTING: {
+      icon: 'fa-circle-o-notch fa-spin',
+      text: 'Connecting',
+      open: false
+    },
+
+    WS_RECONNECTING: {
+      icon: 'fa-circle-o-notch fa-spin',
+      text: 'Reconnecting',
+      open: false
+    },
+
+    WS_DISCONNECTED: {
+      icon: 'fa-exclamation-triangle',
+      text: 'Disconnected',
+      open: false
+    },
+
+    CONNECTED: {
+      icon: 'fa-check',
+      text: 'Connected',
+      open: true
+    },
+
+    LOCKED: {
+      icon: 'fa-lock',
+      text: 'Locked',
+      open: false
+    }
+  }
+
+  let clientToken = null
+
   export default {
     client: null,
 
@@ -57,7 +82,7 @@
         }
 
         if (mutation.type == 'LOGOUT') {
-          this.$router.push('login')
+          this.$router.push('auth')
         }
       })
 
@@ -65,18 +90,24 @@
     },
 
     created () {
-      this.ws_state = 'connecting'
+      this.state = states.HANDSHAKING
 
-      this.client.connect()
+      this.$http.post('handshake', {})
+        .then(response => {
+          this.$http.interceptors.request.use(config => {
+            config.headers['X-Client-Token'] = response.data.token
 
-      this.client.on('connect', () => this.ws_state = 'connected')
-      this.client.on('disconnect', () => this.ws_state = 'disconnected')
-      this.client.on('reconnecting', () => this.ws_state = 'reconnecting')
+            return config
+          })
 
-      this.client.on('connect_error', this.showConnectionError)
-      this.client.on('connect_timeout', this.showConnectionError)
-      this.client.on('reconnect_error', this.showConnectionError)
-      this.client.on('reconnect_failed', this.showConnectionError)
+          this.$store.dispatch('setClientToken', response.data.token)
+
+          this.openSocket()
+        })
+        .catch(error => {
+          this.state = states.HANDSHAKE_FAILED
+          this.message = error.response.data.error.message || error.message    
+        })
     },
 
     destroyed () {
@@ -90,19 +121,45 @@
     },
 
     methods: {
+      openSocket () {
+        this.state = states.WS_CONNECTING
+
+        this.client
+          .withApiKey(this.$store.getters.clientToken)
+          .connect()
+
+        this.client.on('connect', () => {
+          this.state = states.CONNECTED
+
+          this.$router.push('auth')
+        })
+
+        this.client.on('disconnect', () => this.state = states.WS_DISCONNECTED)
+        this.client.on('reconnecting', () => this.state = states.WS_RECONNECTING)
+
+        this.client.on('connect_error', this.showConnectionError)
+        this.client.on('connect_timeout', this.showConnectionError)
+        this.client.on('reconnect_error', this.showConnectionError)
+        this.client.on('reconnect_failed', this.showConnectionError)
+      },
+
       showConnectionError (error) {
-        this.ws_state = 'disconnected'
+        this.state = states.WS_DISCONNECTED
 
         if (error) {
-          this.ws_message = error.toString()
+          this.message = error.toString()
         }
+      },
+
+      _clientTokenInterceptor (config) {
+
       }
     },
 
     data () {
       return {
-        ws_state: 'locked',
-        ws_message: null
+        state: states.LOCKED,
+        message: null
       }
     }
   }

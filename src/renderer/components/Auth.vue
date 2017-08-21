@@ -43,7 +43,7 @@
                     <div class="is-clearfix">
                       <div class="field is-grouped is-pulled-right action">
                         <p class="control">
-                          <button type="submit" class="button">
+                          <button type="submit" class="button" :disabled="disableLoginButton">
 
                             <span class="icon is-small">
                               <i class="fa fa-sign-in"></i>
@@ -71,10 +71,14 @@
       if (this.$store.getters.user) {
         this.$router.push('home')
       }
+
+      this.$on('auth.logout', this.logout)
     },
 
     data () {
       return {
+        disableLoginButton: false,
+
         credentials: {
           username: null,
           password: null
@@ -85,27 +89,41 @@
     methods: {
       login () {
         const loader = this.$loading.open()
+        this.disableLoginButton = true
   
         this.$http.post('auth/login', this.credentials)
           .then(response => {
-            loader.close()
+            const id = this.$http.interceptors.request.use(this._authInterceptor)
 
             this.$store.dispatch('login', response.data.user)
+            this.$store.dispatch('setInterceptor', id)
 
-            this.$http.defaults.headers.common['Authorization'] = `Bearer ${response.data.user.token}`
+            this.disableLoginButton = false
+            
+            loader.close()
           })
           .catch(error => {
             const message = error.response.data.error.message || error.message
 
             this.credentials.password = null
 
-            loader.close()
-
             this.$dialog.alert({ message,
               title: 'Login Error',
               type: 'is-danger'
             })
+
+            this.disableLoginButton = false
+            
+            loader.close()
           })
+      },
+
+      _authInterceptor (config) {
+        if (this.$store.getters.user) {
+          config.headers['Authorization'] = `Bearer ${this.$store.getters.user.token}`
+        }
+
+        return config
       }
     }
   }

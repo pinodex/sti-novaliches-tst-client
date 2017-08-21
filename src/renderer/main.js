@@ -28,11 +28,11 @@ Vue.use(Buefy)
 
 Vue.config.productionTip = false
 
-Vue.http = Vue.prototype.$http = axios.create({
-  baseURL: `${process.env.server}/api`
+Vue.prototype.$http = axios.create({
+  baseURL: `${process.env.SERVER}/api`
 })
 
-Vue.io = Vue.prototype.$io = ws(process.env.server, {
+Vue.prototype.$io = ws(process.env.SERVER, {
   transports: ['websocket'],
   upgrade: false
 })
